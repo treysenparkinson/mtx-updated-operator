@@ -1,5 +1,6 @@
 import type { Context, Config } from "@netlify/functions";
 import * as XLSX from 'xlsx';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 export default async (req: Request, context: Context) => {
   if (req.method === "OPTIONS") {
@@ -17,6 +18,16 @@ export default async (req: Request, context: Context) => {
     if (!refId || !labels || labels.length === 0) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
     }
+
+    // Initialize S3 client
+    const s3Client = new S3Client({
+      region: Netlify.env.get("MY_AWS_REGION") || "us-east-1",
+      credentials: {
+        accessKeyId: Netlify.env.get("MY_AWS_ACCESS_KEY_ID") || "",
+        secretAccessKey: Netlify.env.get("MY_AWS_SECRET_ACCESS_KEY") || ""
+      }
+    });
+    const bucketName = Netlify.env.get("S3_BUCKET") || "";
 
     const timestamp = new Date().toISOString();
     const formattedDate = new Date().toLocaleString("en-US", {
@@ -69,28 +80,16 @@ export default async (req: Request, context: Context) => {
     
     // Set column widths
     worksheet['!cols'] = [
-      { wch: 15 }, // Size
-      { wch: 12 }, // Color
-      { wch: 15 }, // VAR1
-      { wch: 15 }, // VAR2
-      { wch: 15 }, // VAR3
-      { wch: 15 }, // VAR4
-      { wch: 15 }, // VAR5
-      { wch: 15 }, // VAR6
-      { wch: 10 }, // VAR1 Size
-      { wch: 10 }, // VAR2 Size
-      { wch: 10 }, // VAR3 Size
-      { wch: 10 }, // VAR4 Size
-      { wch: 10 }, // VAR5 Size
-      { wch: 10 }, // VAR6 Size
-      { wch: 18 }, // Font
+      { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
+      { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 10 },
+      { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 18 }
     ];
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Labels");
     
-    // Generate XLSX as base64
-    const xlsxBuffer = XLSX.write(workbook, { type: 'base64', bookType: 'xlsx' });
+    // Generate XLSX as buffer
+    const xlsxBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 
     // Generate PDF HTML
     const generateLabelSVG = (label: any) => {
@@ -122,6 +121,8 @@ export default async (req: Request, context: Context) => {
       const pos = { ...defPos, ...positions };
 
       let textElements = "";
+      const escapeHtml = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      
       if (label.var1) textElements += `<text x="${pos.var1.x * scale}" y="${pos.var1.y * scale}" text-anchor="middle" fill="${color.text}" font-size="${(label.var1Size || 18) * scale * 0.7}" font-family="${font.family || 'Calibri, sans-serif'}">${escapeHtml(label.var1)}</text>`;
       if (label.var2 && showLine2) textElements += `<text x="${pos.var2.x * scale}" y="${pos.var2.y * scale}" text-anchor="middle" fill="${color.text}" font-size="${(label.var2Size || 18) * scale * 0.7}" font-family="${font.family || 'Calibri, sans-serif'}">${escapeHtml(label.var2)}</text>`;
       if (label.var3 && showLine3) textElements += `<text x="${pos.var3.x * scale}" y="${pos.var3.y * scale}" text-anchor="middle" fill="${color.text}" font-size="${(label.var3Size || 18) * scale * 0.7}" font-family="${font.family || 'Calibri, sans-serif'}">${escapeHtml(label.var3)}</text>`;
@@ -137,10 +138,6 @@ export default async (req: Request, context: Context) => {
         <circle cx="${w/2}" cy="${cutoutY}" r="${cutoutR}" fill="#ffffff" ${circleStroke}/>
         ${textElements}
       </svg>`;
-    };
-
-    const escapeHtml = (text: string) => {
-      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     };
 
     const labelCards = labels.map((label: any) => `
@@ -194,6 +191,26 @@ ${labelCards}
 </body>
 </html>`;
 
+    // Upload XLSX to S3
+    const xlsxKey = `labels/${refId}/labels-${refId}.xlsx`;
+    await s3Client.send(new PutObjectCommand({
+      Bucket: bucketName,
+      Key: xlsxKey,
+      Body: xlsxBuffer,
+      ContentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    }));
+    const xlsxUrl = `https://${bucketName}.s3.${Netlify.env.get("MY_AWS_REGION")}.amazonaws.com/${xlsxKey}`;
+
+    // Upload HTML (for PDF conversion) to S3
+    const htmlKey = `labels/${refId}/labels-${refId}.html`;
+    await s3Client.send(new PutObjectCommand({
+      Bucket: bucketName,
+      Key: htmlKey,
+      Body: pdfHtml,
+      ContentType: 'text/html'
+    }));
+    const htmlUrl = `https://${bucketName}.s3.${Netlify.env.get("MY_AWS_REGION")}.amazonaws.com/${htmlKey}`;
+
     const labelSummaries = labels.map((label: any) => ({
       size: label.size?.name,
       dimensions: label.size?.dimensions,
@@ -220,9 +237,9 @@ ${labelCards}
       formattedDate,
       totalLabels,
       labelCount: labels.length,
-      xlsxBase64: xlsxBuffer,
+      xlsxUrl,
       xlsxFileName: `labels-${refId}.xlsx`,
-      pdfHtml,
+      htmlUrl,
       pdfFileName: `labels-${refId}.pdf`,
       labels: labelSummaries
     };

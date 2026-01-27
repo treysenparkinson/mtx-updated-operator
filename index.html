@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Operator Label Creator - Matrix Systems</title>
+</head>
+<body style="margin:0">
+
+<div id="label-creator-app"></div>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;500;600&family=Roboto:wght@400;500;700&family=Source+Sans+3:wght@400;500;600&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+#label-creator-app{font-family:'Montserrat',system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);min-height:100vh;padding:1rem}
+.lc-header{background:#fff;padding:1rem 1.5rem;border-radius:12px;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+.lc-header h1{margin:0;font-size:1.5rem;color:#1e293b;font-weight:700}
+.lc-container{display:grid;grid-template-columns:320px 1fr 340px;gap:1rem;max-width:1600px;margin:0 auto}
+.lc-left{display:flex;flex-direction:column;gap:1rem}
+.lc-center{display:flex;flex-direction:column;gap:1rem}
+.lc-right{display:flex;flex-direction:column;gap:1rem}
+.lc-card{background:#fff;border-radius:12px;padding:1.25rem;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+.lc-label{font-size:0.7rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;font-weight:600}
+.lc-preview-container{background:#fff;border-radius:12px;padding:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,0.1);display:flex;flex-direction:column;align-items:center;flex:1;overflow:hidden}
+.lc-preview-area{background:#f8fafc;border-radius:12px;padding:2rem;display:flex;justify-content:center;align-items:center;flex:1;min-height:500px;position:relative;cursor:crosshair;box-sizing:border-box}
+.lc-preview-label{font-size:0.75rem;color:#64748b;margin-bottom:0.75rem;text-align:center}
+.lc-btn{background:#16a34a;color:#fff;border:none;padding:0.5rem 1rem;border-radius:8px;font-weight:600;cursor:pointer;transition:background 0.2s;font-family:'Montserrat',sans-serif;font-size:0.875rem}
+.lc-btn:hover{background:#15803d}
+.lc-btn:disabled{background:#cbd5e1;cursor:not-allowed}
+.lc-btn-secondary{background:#e2e8f0;color:#334155}
+.lc-btn-secondary:hover{background:#cbd5e1}
+.lc-btn-row{display:flex;gap:0.5rem;margin-top:0.75rem}
+.lc-qty{width:60px;padding:0.5rem;border:1px solid #e2e8f0;border-radius:8px;text-align:center;font-family:'Montserrat',sans-serif}
+.lc-section{margin-bottom:1rem}
+.lc-section:last-child{margin-bottom:0}
+.lc-section-title{font-size:0.8rem;font-weight:600;color:#334155;margin-bottom:0.5rem}
+.lc-sizes{display:grid;grid-template-columns:1fr 1fr;gap:0.4rem}
+.lc-size-btn{padding:0.5rem;border:2px solid #e2e8f0;border-radius:6px;background:#fff;cursor:pointer;text-align:center;transition:all 0.2s;font-family:'Montserrat',sans-serif}
+.lc-size-btn:hover{border-color:#cbd5e1}
+.lc-size-btn.active{border-color:#16a34a;background:#f0fdf4}
+.lc-size-name{font-weight:600;font-size:0.75rem;color:#1e293b}
+.lc-size-dim{font-size:0.65rem;color:#64748b;font-weight:500}
+.lc-input-row{display:flex;gap:0.4rem;margin-bottom:0.5rem;align-items:center}
+.lc-input{flex:1;padding:0.5rem 0.625rem;border:1px solid #e2e8f0;border-radius:6px;font-size:0.8rem;font-family:'Montserrat',sans-serif}
+.lc-input:focus{outline:none;border-color:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,0.1)}
+.lc-select{width:62px;padding:0.5rem 0.2rem;border:1px solid #e2e8f0;border-radius:6px;background:#fff;font-size:0.75rem;font-family:'Montserrat',sans-serif}
+.lc-colors{display:grid;grid-template-columns:repeat(4,1fr);gap:0.4rem}
+.lc-color-btn{aspect-ratio:1;border-radius:6px;border:2px solid transparent;cursor:pointer;transition:all 0.2s;position:relative}
+.lc-color-btn:hover{transform:scale(1.05)}
+.lc-color-btn.active{border-color:#1e293b;transform:scale(1.1);box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+.lc-color-tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:0.3rem 0.5rem;border-radius:4px;font-size:0.65rem;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.2s;z-index:10}
+.lc-color-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:#1e293b}
+.lc-color-btn:hover .lc-color-tooltip{opacity:1}
+.lc-corners{display:flex;gap:0.4rem}
+.lc-corner-btn{flex:1;padding:0.4rem;border:2px solid #e2e8f0;border-radius:6px;background:#fff;cursor:pointer;font-weight:600;text-transform:capitalize;transition:all 0.2s;font-family:'Montserrat',sans-serif;font-size:0.75rem}
+.lc-corner-btn:hover{border-color:#cbd5e1}
+.lc-corner-btn.active{border-color:#16a34a;background:#f0fdf4;color:#15803d}
+.lc-saved-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem}
+.lc-saved-title{font-weight:700;color:#1e293b;font-size:0.9rem}
+.lc-saved-count{font-size:0.75rem;color:#64748b;background:#f1f5f9;padding:0.2rem 0.5rem;border-radius:9999px;font-weight:500}
+.lc-saved-empty{color:#94a3b8;font-size:0.8rem;text-align:center;padding:1.5rem 0}
+.lc-saved-list{max-height:300px;overflow-y:auto}
+.lc-saved-item{display:flex;align-items:center;gap:0.75rem;padding:0.5rem;background:#f8fafc;border-radius:8px;margin-bottom:0.5rem;animation:fadeSlideIn 0.3s ease-out}
+.lc-saved-item.new{animation:popIn 0.4s ease-out,successPulse 0.6s ease-out}
+.lc-saved-info{flex:1;min-width:0}
+.lc-saved-name{font-size:0.8rem;font-weight:600;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.lc-saved-meta{font-size:0.7rem;color:#64748b;font-weight:500}
+.lc-actions{display:flex;gap:0.3rem;flex-shrink:0}
+.lc-edit-btn,.lc-dupe-btn,.lc-remove-btn{background:none;border:none;color:#94a3b8;cursor:pointer;padding:0.25rem;transition:all 0.2s;font-size:0.9rem}
+.lc-edit-btn:hover{color:#2563eb;transform:scale(1.1)}
+.lc-dupe-btn:hover{color:#16a34a;transform:scale(1.1)}
+.lc-remove-btn:hover{color:#ef4444;transform:scale(1.1)}
+.lc-divider{border-top:1px solid #e2e8f0;margin:0.75rem 0;padding-top:0.75rem}
+.lc-contact-input{width:100%;padding:0.5rem 0.625rem;border:1px solid #e2e8f0;border-radius:6px;font-size:0.8rem;margin-bottom:0.5rem;box-sizing:border-box;font-family:'Montserrat',sans-serif}
+.lc-contact-input:focus{outline:none;border-color:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,0.1)}
+.lc-submit{width:100%;padding:0.75rem}
+.lc-text-label{font-size:0.7rem;color:#64748b;width:45px;flex-shrink:0;white-space:nowrap}
+.lc-draggable{cursor:move;user-select:none}
+.lc-draggable:hover{filter:brightness(1.1)}
+.lc-draggable.dragging{opacity:0.8}
+.lc-reset-btn{font-size:0.7rem;color:#64748b;background:none;border:none;cursor:pointer;text-decoration:underline;margin-top:0.5rem}
+.lc-reset-btn:hover{color:#334155}
+@keyframes popIn{0%{transform:scale(0.8);opacity:0}50%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+@keyframes celebrate{0%{transform:scale(1)}25%{transform:scale(1.05) rotate(-1deg)}50%{transform:scale(1.08) rotate(1deg)}75%{transform:scale(1.05) rotate(-0.5deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes fadeSlideIn{0%{transform:translateY(-10px);opacity:0}100%{transform:translateY(0);opacity:1}}
+@keyframes successPulse{0%{box-shadow:0 0 0 0 rgba(22,163,74,0.4)}70%{box-shadow:0 0 0 10px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}
+.lc-preview-celebrating{animation:celebrate 0.5s ease-in-out}
+.lc-success-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#16a34a;color:#fff;padding:0.6rem 1.25rem;border-radius:8px;font-weight:600;z-index:1000;animation:fadeSlideIn 0.3s ease-out;box-shadow:0 4px 12px rgba(0,0,0,0.15);font-size:0.85rem}
+.lc-drag-hint{font-size:0.7rem;color:#94a3b8;text-align:center;margin-top:0.5rem}
+@media(max-width:1200px){
+  .lc-container{grid-template-columns:1fr;max-width:100%}
+  .lc-left,.lc-center,.lc-right{width:100%}
+  .lc-preview-area{min-height:350px}
+}
+@media(max-width:600px){
+  #label-creator-app{padding:0.5rem}
+  .lc-header{padding:0.6rem 0.75rem;margin-bottom:0.5rem}
+  .lc-header h1{font-size:1.1rem}
+  .lc-container{gap:0.5rem}
+  .lc-card{padding:0.75rem}
+  .lc-preview-container{padding:0.75rem}
+  .lc-preview-area{min-height:240px;padding:0.75rem}
+  .lc-preview-label{font-size:0.6rem;margin-bottom:0.5rem}
+  .lc-sizes{grid-template-columns:1fr 1fr;gap:0.25rem}
+  .lc-size-btn{padding:0.35rem}
+  .lc-size-name{font-size:0.65rem}
+  .lc-size-dim{font-size:0.55rem}
+  .lc-colors{grid-template-columns:repeat(8,1fr);gap:0.25rem}
+  .lc-color-btn{border-radius:4px}
+  .lc-input-row{gap:0.25rem;margin-bottom:0.35rem}
+  .lc-input{padding:0.35rem 0.4rem;font-size:0.7rem;min-width:0}
+  .lc-select{width:48px;padding:0.35rem 0.1rem;font-size:0.65rem}
+  .lc-text-label{font-size:0.6rem;width:32px}
+  .lc-section-title{font-size:0.7rem;margin-bottom:0.35rem}
+  .lc-section{margin-bottom:0.6rem}
+  .lc-btn{padding:0.35rem 0.6rem;font-size:0.75rem}
+  .lc-btn-row{margin-top:0.4rem;gap:0.35rem}
+  .lc-qty{width:45px;padding:0.35rem;font-size:0.75rem}
+  .lc-corners{gap:0.25rem}
+  .lc-corner-btn{padding:0.3rem;font-size:0.65rem}
+  .lc-saved-header{margin-bottom:0.4rem}
+  .lc-saved-title{font-size:0.8rem}
+  .lc-saved-count{font-size:0.65rem;padding:0.1rem 0.35rem}
+  .lc-saved-list{max-height:180px}
+  .lc-saved-item{padding:0.35rem;gap:0.4rem}
+  .lc-saved-name{font-size:0.7rem;max-width:80px}
+  .lc-saved-meta{font-size:0.6rem}
+  .lc-actions{gap:0.15rem}
+  .lc-edit-btn,.lc-dupe-btn,.lc-remove-btn{font-size:0.75rem;padding:0.15rem}
+  .lc-divider{margin:0.4rem 0;padding-top:0.4rem}
+  .lc-contact-input{padding:0.35rem 0.4rem;font-size:0.7rem;margin-bottom:0.35rem}
+  .lc-submit{padding:0.5rem}
+  .lc-reset-btn{font-size:0.6rem;margin-top:0.35rem}
+  .lc-success-toast{font-size:0.7rem;padding:0.4rem 0.75rem;top:10px}
+  .lc-color-tooltip{display:none}
+}
+@media(max-width:380px){
+  #label-creator-app{padding:0.35rem}
+  .lc-header{padding:0.5rem 0.6rem}
+  .lc-header h1{font-size:1rem}
+  .lc-card{padding:0.6rem}
+  .lc-preview-area{min-height:200px;padding:0.5rem}
+  .lc-text-label{width:28px;font-size:0.55rem}
+  .lc-select{width:42px;font-size:0.6rem}
+  .lc-input{font-size:0.65rem;padding:0.3rem}
+  .lc-size-name{font-size:0.6rem}
+  .lc-size-dim{font-size:0.5rem}
+  .lc-saved-name{max-width:60px}
+}
+</style>
+<script type="text/babel">
+const SIZES=[{id:'22mm',name:'22MM',dimensions:'1.2" × 1.6"',width:96,height:128},{id:'30mm-short',name:'30MM Short',dimensions:'1.7" × 1.7"',width:136,height:136},{id:'30mm-standard',name:'30MM Standard',dimensions:'2" × 2.27"',width:160,height:182},{id:'30mm-large',name:'30MM Large',dimensions:'2.5" × 2.5"',width:200,height:200}];
+const COLORS=[{id:'green-white',name:'Green/White',bg:'#16a34a',text:'#fff'},{id:'red-white',name:'Red/White',bg:'#dc2626',text:'#fff'},{id:'yellow-black',name:'Yellow/Black',bg:'#ca8a04',text:'#000'},{id:'blue-white',name:'Blue/White',bg:'#2563eb',text:'#fff'},{id:'black-white',name:'Black/White',bg:'#1f2937',text:'#fff'},{id:'white-black',name:'White/Black',bg:'#f3f4f6',text:'#000'},{id:'orange-black',name:'Orange/Black',bg:'#ea580c',text:'#000'},{id:'gray-black',name:'Gray/Black',bg:'#6b7280',text:'#000'}];
+const NOTCHES=[{id:'none',name:'None'},{id:'top',name:'Top'},{id:'right',name:'Right'},{id:'bottom',name:'Bottom'},{id:'left',name:'Left'},{id:'all',name:'All Sides'}];
+const FONTS=[{id:'calibri',name:'Calibri (Default)',family:'Calibri,sans-serif'},{id:'arial',name:'Arial',family:'Arial,sans-serif'},{id:'helvetica',name:'Helvetica',family:'Helvetica,sans-serif'},{id:'opensans',name:'Open Sans',family:"'Open Sans',sans-serif"},{id:'roboto',name:'Roboto',family:'Roboto,sans-serif'},{id:'sourcesans',name:'Source Sans 3',family:"'Source Sans 3',sans-serif"},{id:'poppins',name:'Poppins',family:'Poppins,sans-serif'},{id:'times',name:'Times New Roman',family:"'Times New Roman',serif"}];
+
+const getDefaultPositions=(size)=>{
+  const w=size.width,h=size.height;
+  const cutoutY=h*0.68;
+  const cutoutR=size.id==='22mm'?24:36;
+  const isSmall=size.id==='22mm'||size.id==='30mm-short';
+  const is22=size.id==='22mm';
+  return{
+    var1:{x:w/2,y:20},
+    var2:{x:w/2,y:38},
+    var3:{x:w/2,y:54},
+    var4:{x:w/2,y:cutoutY-cutoutR-(is22?12:16)},
+    var5:{x:w/2-cutoutR-(is22?4:isSmall?10:14),y:cutoutY-(is22?18:isSmall?22:28)},
+    var6:{x:w/2+cutoutR+(is22?4:isSmall?10:14),y:cutoutY-(is22?18:isSmall?22:28)}
+  };
+};
+
+const LabelPreview=({label,scale=1,positions,onDrag,draggingId,setDraggingId})=>{
+  const size=label.size||SIZES[2],color=label.color||COLORS[0],corners=label.corners||'squared',notch=label.notch||'none',font=label.font||FONTS[0];
+  const w=size.width*scale,h=size.height*scale,cutoutR=(size.id==='22mm'?24:36)*scale,cutoutY=h*0.68,notchSize=10*scale,borderR=corners==='rounded'?8*scale:0;
+  const maskId=`mask-${label.id||'preview'}-${Math.random().toString(36).substr(2,9)}`;
+  const fontFamily=font.family;
+  const showLine2=size.id!=='30mm-short';
+  const showLine3=size.id!=='22mm'&&size.id!=='30mm-short';
+  const isWhiteBlack=color.id==='white-black';
+  const strokeColor=isWhiteBlack?'#000':'none';
+  const strokeWidth=isWhiteBlack?1*scale:0;
+  const centerX=size.width/2;
+  const centerY=size.height/2;
+  const snapThreshold=5;
+
+  const handleMouseDown=(e,varId)=>{
+    if(!onDrag)return;
+    e.preventDefault();
+    setDraggingId(varId);
+    const svg=e.target.closest('svg');
+    const rect=svg.getBoundingClientRect();
+    const handleMouseMove=(e2)=>{
+      let x=(e2.clientX-rect.left)/scale;
+      let y=(e2.clientY-rect.top)/scale;
+      if(Math.abs(x-centerX)<snapThreshold)x=centerX;
+      if(Math.abs(y-centerY)<snapThreshold)y=centerY;
+      onDrag(varId,{x:Math.max(10,Math.min(size.width-10,x)),y:Math.max(10,Math.min(size.height-10,y))});
+    };
+    const handleMouseUp=()=>{
+      setDraggingId(null);
+      document.removeEventListener('mousemove',handleMouseMove);
+      document.removeEventListener('mouseup',handleMouseUp);
+    };
+    document.addEventListener('mousemove',handleMouseMove);
+    document.addEventListener('mouseup',handleMouseUp);
+  };
+
+  const showCenterLines=draggingId!==null;
+
+  return(
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{display:'block'}}>
+      <defs>
+        <mask id={maskId}>
+          <rect width={w} height={h} fill="white" rx={borderR}/>
+          <circle cx={w/2} cy={cutoutY} r={cutoutR} fill="black"/>
+          {(notch==='top'||notch==='all')&&<rect x={w/2-notchSize/2} y={cutoutY-cutoutR-notchSize/2} width={notchSize} height={notchSize} fill="black"/>}
+          {(notch==='bottom'||notch==='all')&&<rect x={w/2-notchSize/2} y={cutoutY+cutoutR-notchSize/2} width={notchSize} height={notchSize} fill="black"/>}
+          {(notch==='left'||notch==='all')&&<rect x={w/2-cutoutR-notchSize/2} y={cutoutY-notchSize/2} width={notchSize} height={notchSize} fill="black"/>}
+          {(notch==='right'||notch==='all')&&<rect x={w/2+cutoutR-notchSize/2} y={cutoutY-notchSize/2} width={notchSize} height={notchSize} fill="black"/>}
+        </mask>
+      </defs>
+      <rect width={w} height={h} fill={color.bg} mask={`url(#${maskId})`} rx={borderR} stroke={strokeColor} strokeWidth={strokeWidth}/>
+      {isWhiteBlack&&(()=>{
+        const cx=w/2,cy=cutoutY,r=cutoutR,ns=notchSize/2;
+        const hasTop=notch==='top'||notch==='all';
+        const hasBottom=notch==='bottom'||notch==='all';
+        const hasLeft=notch==='left'||notch==='all';
+        const hasRight=notch==='right'||notch==='all';
+        if(!hasTop&&!hasBottom&&!hasLeft&&!hasRight){
+          return <circle cx={cx} cy={cy} r={r} fill="none" stroke="#000" strokeWidth={strokeWidth}/>;
+        }
+        const topNotchAngle=Math.asin(ns/r);
+        const pts=[];
+        const addArc=(startAngle,endAngle)=>{
+          for(let a=startAngle;a<=endAngle;a+=0.05){
+            pts.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);
+          }
+          pts.push([cx+r*Math.cos(endAngle),cy+r*Math.sin(endAngle)]);
+        };
+        const addNotch=(direction)=>{
+          if(direction==='top'){
+            pts.push([cx-ns,cy-r]);
+            pts.push([cx-ns,cy-r-ns]);
+            pts.push([cx+ns,cy-r-ns]);
+            pts.push([cx+ns,cy-r]);
+          }else if(direction==='right'){
+            pts.push([cx+r,cy-ns]);
+            pts.push([cx+r+ns,cy-ns]);
+            pts.push([cx+r+ns,cy+ns]);
+            pts.push([cx+r,cy+ns]);
+          }else if(direction==='bottom'){
+            pts.push([cx+ns,cy+r]);
+            pts.push([cx+ns,cy+r+ns]);
+            pts.push([cx-ns,cy+r+ns]);
+            pts.push([cx-ns,cy+r]);
+          }else if(direction==='left'){
+            pts.push([cx-r,cy+ns]);
+            pts.push([cx-r-ns,cy+ns]);
+            pts.push([cx-r-ns,cy-ns]);
+            pts.push([cx-r,cy-ns]);
+          }
+        };
+        const ta=Math.asin(ns/r);
+        let a=-Math.PI/2+ta;
+        if(hasTop){addNotch('top');}else{a=-Math.PI/2;}
+        const rightStart=hasTop?-Math.PI/2+ta:-Math.PI/2;
+        const rightEnd=hasRight?-ta:0;
+        addArc(rightStart,rightEnd);
+        if(hasRight){addNotch('right');a=ta;}
+        const bottomStart=hasRight?ta:0;
+        const bottomEnd=hasBottom?Math.PI/2-ta:Math.PI/2;
+        addArc(bottomStart,bottomEnd);
+        if(hasBottom){addNotch('bottom');}
+        const leftStart=hasBottom?Math.PI/2+ta:Math.PI/2;
+        const leftEnd=hasLeft?Math.PI-ta:Math.PI;
+        addArc(leftStart,leftEnd);
+        if(hasLeft){addNotch('left');}
+        const topStart=hasLeft?Math.PI+ta:Math.PI;
+        const topEnd=hasTop?3*Math.PI/2-ta:3*Math.PI/2;
+        addArc(topStart,topEnd);
+        const d='M'+pts.map(p=>p.join(',')).join('L')+'Z';
+        return <path d={d} fill="none" stroke="#000" strokeWidth={strokeWidth}/>;
+      })()}
+      {showCenterLines&&<line x1={w/2} y1={0} x2={w/2} y2={h} stroke="rgba(59,130,246,0.5)" strokeWidth={1} strokeDasharray="4,4"/>}
+      {showCenterLines&&<line x1={0} y1={h/2} x2={w} y2={h/2} stroke="rgba(59,130,246,0.5)" strokeWidth={1} strokeDasharray="4,4"/>}
+      {label.var1&&<text x={positions.var1.x*scale} y={positions.var1.y*scale} textAnchor="middle" fill={color.text} fontSize={(label.var1Size||18)*scale*0.7} fontFamily={fontFamily} className={`lc-draggable ${draggingId==='var1'?'dragging':''}`} onMouseDown={e=>handleMouseDown(e,'var1')} style={{cursor:'move'}}>{label.var1}</text>}
+      {label.var2&&showLine2&&<text x={positions.var2.x*scale} y={positions.var2.y*scale} textAnchor="middle" fill={color.text} fontSize={(label.var2Size||18)*scale*0.7} fontFamily={fontFamily} className={`lc-draggable ${draggingId==='var2'?'dragging':''}`} onMouseDown={e=>handleMouseDown(e,'var2')} style={{cursor:'move'}}>{label.var2}</text>}
+      {label.var3&&showLine3&&<text x={positions.var3.x*scale} y={positions.var3.y*scale} textAnchor="middle" fill={color.text} fontSize={(label.var3Size||18)*scale*0.7} fontFamily={fontFamily} className={`lc-draggable ${draggingId==='var3'?'dragging':''}`} onMouseDown={e=>handleMouseDown(e,'var3')} style={{cursor:'move'}}>{label.var3}</text>}
+      {label.var4&&<text x={positions.var4.x*scale} y={positions.var4.y*scale} textAnchor="middle" fill={color.text} fontSize={(label.var4Size||10)*scale*0.7} fontFamily={fontFamily} className={`lc-draggable ${draggingId==='var4'?'dragging':''}`} onMouseDown={e=>handleMouseDown(e,'var4')} style={{cursor:'move'}}>{label.var4}</text>}
+      {label.var5&&<text x={positions.var5.x*scale} y={positions.var5.y*scale} textAnchor="end" fill={color.text} fontSize={(label.var5Size||10)*scale*0.7} fontFamily={fontFamily} className={`lc-draggable ${draggingId==='var5'?'dragging':''}`} onMouseDown={e=>handleMouseDown(e,'var5')} style={{cursor:'move'}}>{label.var5}</text>}
+      {label.var6&&<text x={positions.var6.x*scale} y={positions.var6.y*scale} textAnchor="start" fill={color.text} fontSize={(label.var6Size||10)*scale*0.7} fontFamily={fontFamily} className={`lc-draggable ${draggingId==='var6'?'dragging':''}`} onMouseDown={e=>handleMouseDown(e,'var6')} style={{cursor:'move'}}>{label.var6}</text>}
+    </svg>
+  );
+};
+
+const SmallPreview=({label,scale=0.35})=>{
+  const size=label.size||SIZES[2],color=label.color||COLORS[0],corners=label.corners||'squared',notch=label.notch||'none',font=label.font||FONTS[0];
+  const w=size.width*scale,h=size.height*scale,cutoutR=(size.id==='22mm'?24:36)*scale,cutoutY=h*0.68,notchSize=10*scale,borderR=corners==='rounded'?8*scale:0;
+  const maskId=`mask-small-${label.id}-${Math.random().toString(36).substr(2,9)}`;
+  const isWhiteBlack=color.id==='white-black';
+  const strokeColor=isWhiteBlack?'#000':'none';
+  const strokeWidth=isWhiteBlack?1*scale:0;
+  return(
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{display:'block',flexShrink:0}}>
+      <defs>
+        <mask id={maskId}>
+          <rect width={w} height={h} fill="white" rx={borderR}/>
+          <circle cx={w/2} cy={cutoutY} r={cutoutR} fill="black"/>
+          {(notch==='top'||notch==='all')&&<rect x={w/2-notchSize/2} y={cutoutY-cutoutR-notchSize/2} width={notchSize} height={notchSize} fill="black"/>}
+          {(notch==='bottom'||notch==='all')&&<rect x={w/2-notchSize/2} y={cutoutY+cutoutR-notchSize/2} width={notchSize} height={notchSize} fill="black"/>}
+          {(notch==='left'||notch==='all')&&<rect x={w/2-cutoutR-notchSize/2} y={cutoutY-notchSize/2} width={notchSize} height={notchSize} fill="black"/>}
+          {(notch==='right'||notch==='all')&&<rect x={w/2+cutoutR-notchSize/2} y={cutoutY-notchSize/2} width={notchSize} height={notchSize} fill="black"/>}
+        </mask>
+      </defs>
+      <rect width={w} height={h} fill={color.bg} mask={`url(#${maskId})`} rx={borderR} stroke={strokeColor} strokeWidth={strokeWidth}/>
+      {isWhiteBlack&&<circle cx={w/2} cy={cutoutY} r={cutoutR} fill="none" stroke="#000" strokeWidth={strokeWidth}/>}
+    </svg>
+  );
+};
+
+const App=()=>{
+  const[size,setSize]=React.useState(SIZES[2]);
+  const[color,setColor]=React.useState(COLORS[0]);
+  const[corners,setCorners]=React.useState('squared');
+  const[notch,setNotch]=React.useState('none');
+  const[font,setFont]=React.useState(FONTS[0]);
+  const[var1,setVar1]=React.useState('START');
+  const[var2,setVar2]=React.useState('');
+  const[var3,setVar3]=React.useState('');
+  const[var4,setVar4]=React.useState('');
+  const[var5,setVar5]=React.useState('');
+  const[var6,setVar6]=React.useState('');
+  const[var1Size,setVar1Size]=React.useState(18);
+  const[var2Size,setVar2Size]=React.useState(18);
+  const[var3Size,setVar3Size]=React.useState(18);
+  const[var4Size,setVar4Size]=React.useState(10);
+  const[var5Size,setVar5Size]=React.useState(10);
+  const[var6Size,setVar6Size]=React.useState(10);
+  const[quantity,setQuantity]=React.useState(1);
+  const[savedLabels,setSavedLabels]=React.useState([]);
+  const[refId,setRefId]=React.useState('');
+  const[contactName,setContactName]=React.useState('');
+  const[contactEmail,setContactEmail]=React.useState('');
+  const[showToast,setShowToast]=React.useState(false);
+  const[toastMessage,setToastMessage]=React.useState('Label added!');
+  const[isSubmitting,setIsSubmitting]=React.useState(false);
+  const[newLabelId,setNewLabelId]=React.useState(null);
+  const[celebrating,setCelebrating]=React.useState(false);
+  const[positions,setPositions]=React.useState(getDefaultPositions(SIZES[2]));
+  const[draggingId,setDraggingId]=React.useState(null);
+
+  React.useEffect(()=>{setPositions(getDefaultPositions(size));},[size]);
+
+  const currentLabel={size,color,corners,notch,font,var1,var2,var3,var4,var5,var6,var1Size,var2Size,var3Size,var4Size,var5Size,var6Size,quantity};
+  
+  const handleDrag=(varId,newPos)=>{setPositions(prev=>({...prev,[varId]:newPos}));};
+  const resetPositions=()=>{setPositions(getDefaultPositions(size));};
+
+  const addLabel=()=>{
+    const id=Date.now().toString();
+    setSavedLabels([...savedLabels,{id,...currentLabel,positions:{...positions}}]);
+    setNewLabelId(id);
+    setCelebrating(true);
+    setToastMessage('✓ Label added!');
+    setShowToast(true);
+    setTimeout(()=>setShowToast(false),2000);
+    setTimeout(()=>setCelebrating(false),500);
+    setTimeout(()=>setNewLabelId(null),400);
+  };
+
+  const submitOrder=async()=>{
+    if(savedLabels.length===0||!refId||isSubmitting)return;
+    setIsSubmitting(true);
+    try{
+      const response=await fetch('/api/submit-order',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          refId,
+          contactName,
+          contactEmail,
+          labels:savedLabels
+        })
+      });
+      const result=await response.json();
+      if(result.success){
+        setToastMessage('✓ Order submitted successfully!');
+        setShowToast(true);
+        setSavedLabels([]);
+        setRefId('');
+        setContactName('');
+        setContactEmail('');
+        setTimeout(()=>setShowToast(false),3000);
+      }else{
+        setToastMessage('✗ Failed to submit order');
+        setShowToast(true);
+        setTimeout(()=>setShowToast(false),3000);
+      }
+    }catch(err){
+      console.error('Submit error:',err);
+      setToastMessage('✗ Failed to submit order');
+      setShowToast(true);
+      setTimeout(()=>setShowToast(false),3000);
+    }finally{
+      setIsSubmitting(false);
+    }
+  };
+  const removeLabel=(id)=>{setSavedLabels(savedLabels.filter(l=>l.id!==id));};
+  const duplicateLabel=(label)=>{
+    const id=Date.now().toString();
+    setSavedLabels([...savedLabels,{...label,id}]);
+    setNewLabelId(id);
+    setShowToast(true);
+    setTimeout(()=>setShowToast(false),2000);
+    setTimeout(()=>setNewLabelId(null),400);
+  };
+  const editLabel=(label)=>{
+    setSize(label.size);setColor(label.color);setCorners(label.corners);setNotch(label.notch);setFont(label.font);
+    setVar1(label.var1);setVar2(label.var2);setVar3(label.var3);setVar4(label.var4);setVar5(label.var5);setVar6(label.var6);
+    setVar1Size(label.var1Size);setVar2Size(label.var2Size);setVar3Size(label.var3Size);setVar4Size(label.var4Size);setVar5Size(label.var5Size);setVar6Size(label.var6Size);
+    setQuantity(label.quantity);
+    if(label.positions)setPositions(label.positions);
+    setSavedLabels(savedLabels.filter(l=>l.id!==label.id));
+  };
+  const totalLabels=savedLabels.reduce((sum,l)=>sum+l.quantity,0);
+  const showLine2=size.id!=='30mm-short';
+  const showLine3=size.id!=='22mm'&&size.id!=='30mm-short';
+  const previewScale=2.5;
+
+  return(
+    <>
+      {showToast&&<div className="lc-success-toast">{toastMessage}</div>}
+      <div className="lc-header"><h1>Operator Label Creator</h1></div>
+      <div className="lc-container">
+        <div className="lc-left">
+          <div className="lc-card">
+            <div className="lc-section">
+              <div className="lc-section-title">Label Size</div>
+              <div className="lc-sizes">
+                {SIZES.map(s=>(<button key={s.id} onClick={()=>setSize(s)} className={`lc-size-btn ${size.id===s.id?'active':''}`}><div className="lc-size-name">{s.name}</div><div className="lc-size-dim">{s.dimensions}</div></button>))}
+              </div>
+            </div>
+            <div className="lc-section">
+              <div className="lc-section-title">Font</div>
+              <select value={font.id} onChange={e=>setFont(FONTS.find(f=>f.id===e.target.value))} className="lc-input" style={{width:'100%'}}>{FONTS.map(f=>(<option key={f.id} value={f.id}>{f.name}</option>))}</select>
+            </div>
+            <div className="lc-section">
+              <div className="lc-section-title">Header Text</div>
+              <div className="lc-input-row"><span className="lc-text-label">Line 1</span><input type="text" value={var1} onChange={e=>setVar1(e.target.value)} placeholder="Main" className="lc-input"/><select value={var1Size} onChange={e=>setVar1Size(+e.target.value)} className="lc-select">{[6,7,8,9,10,11,12,14,16,18,20,22,24,28,32,36,40,48].map(s=><option key={s} value={s}>{s}pt</option>)}</select></div>
+              {showLine2&&<div className="lc-input-row"><span className="lc-text-label">Line 2</span><input type="text" value={var2} onChange={e=>setVar2(e.target.value)} placeholder="Optional" className="lc-input"/><select value={var2Size} onChange={e=>setVar2Size(+e.target.value)} className="lc-select">{[6,7,8,9,10,11,12,14,16,18,20,22,24,28,32,36,40,48].map(s=><option key={s} value={s}>{s}pt</option>)}</select></div>}
+              {showLine3&&<div className="lc-input-row"><span className="lc-text-label">Line 3</span><input type="text" value={var3} onChange={e=>setVar3(e.target.value)} placeholder="Optional" className="lc-input"/><select value={var3Size} onChange={e=>setVar3Size(+e.target.value)} className="lc-select">{[6,7,8,9,10,11,12,14,16,18,20,22,24,28,32,36,40,48].map(s=><option key={s} value={s}>{s}pt</option>)}</select></div>}
+            </div>
+            <div className="lc-section">
+              <div className="lc-section-title">Cutout Text</div>
+              <div className="lc-input-row"><span className="lc-text-label">Top</span><input type="text" value={var4} onChange={e=>setVar4(e.target.value)} placeholder="Above" className="lc-input"/><select value={var4Size} onChange={e=>setVar4Size(+e.target.value)} className="lc-select">{[6,7,8,9,10,11,12,14,16,18,20,22,24,28,32,36,40,48].map(s=><option key={s} value={s}>{s}pt</option>)}</select></div>
+              <div className="lc-input-row"><span className="lc-text-label">Left</span><input type="text" value={var5} onChange={e=>setVar5(e.target.value)} placeholder="Left" className="lc-input"/><select value={var5Size} onChange={e=>setVar5Size(+e.target.value)} className="lc-select">{[6,7,8,9,10,11,12,14,16,18,20,22,24,28,32,36,40,48].map(s=><option key={s} value={s}>{s}pt</option>)}</select></div>
+              <div className="lc-input-row"><span className="lc-text-label">Right</span><input type="text" value={var6} onChange={e=>setVar6(e.target.value)} placeholder="Right" className="lc-input"/><select value={var6Size} onChange={e=>setVar6Size(+e.target.value)} className="lc-select">{[6,7,8,9,10,11,12,14,16,18,20,22,24,28,32,36,40,48].map(s=><option key={s} value={s}>{s}pt</option>)}</select></div>
+            </div>
+          </div>
+          <div className="lc-card">
+            <div className="lc-section">
+              <div className="lc-section-title">Color</div>
+              <div className="lc-colors">{COLORS.map(c=>(<button key={c.id} onClick={()=>setColor(c)} className={`lc-color-btn ${color.id===c.id?'active':''}`} style={{backgroundColor:c.bg}}><span className="lc-color-tooltip">{c.name}</span></button>))}</div>
+            </div>
+            <div className="lc-section">
+              <div className="lc-section-title">Corners</div>
+              <div className="lc-corners">{['rounded','squared'].map(c=>(<button key={c} onClick={()=>setCorners(c)} className={`lc-corner-btn ${corners===c?'active':''}`}>{c}</button>))}</div>
+            </div>
+            <div className="lc-section">
+              <div className="lc-section-title">Notch</div>
+              <select value={notch} onChange={e=>setNotch(e.target.value)} className="lc-input" style={{width:'100%'}}>{NOTCHES.map(n=>(<option key={n.id} value={n.id}>{n.name}</option>))}</select>
+            </div>
+          </div>
+        </div>
+        <div className="lc-center">
+          <div className="lc-preview-container">
+            <div className="lc-preview-label">{size.name} • {size.dimensions} — Drag text to reposition</div>
+            <div className={`lc-preview-area ${celebrating?'lc-preview-celebrating':''}`}>
+              <LabelPreview label={currentLabel} scale={previewScale} positions={positions} onDrag={handleDrag} draggingId={draggingId} setDraggingId={setDraggingId}/>
+            </div>
+            <button className="lc-reset-btn" onClick={resetPositions}>Reset text positions</button>
+            <div className="lc-btn-row" style={{width:'100%',justifyContent:'center'}}>
+              <input type="number" min="1" value={quantity} onChange={e=>setQuantity(Math.max(1,parseInt(e.target.value)||1))} className="lc-qty"/>
+              <button onClick={addLabel} className="lc-btn">Add to List</button>
+            </div>
+          </div>
+        </div>
+        <div className="lc-right">
+          <div className="lc-card" style={{flex:1}}>
+            <div className="lc-saved-header">
+              <span className="lc-saved-title">Saved Labels</span>
+              <span className="lc-saved-count">{totalLabels} total</span>
+            </div>
+            {savedLabels.length===0?(<div className="lc-saved-empty">No labels yet</div>):(
+              <div className="lc-saved-list">
+                {savedLabels.map(label=>(
+                  <div key={label.id} className={`lc-saved-item ${newLabelId===label.id?'new':''}`}>
+                    <SmallPreview label={label} scale={0.35}/>
+                    <div className="lc-saved-info">
+                      <div className="lc-saved-name">{label.var1||'Untitled'}</div>
+                      <div className="lc-saved-meta">{label.size.name} × {label.quantity}</div>
+                    </div>
+                    <div className="lc-actions">
+                      <button onClick={()=>editLabel(label)} className="lc-edit-btn" title="Edit">✎</button>
+                      <button onClick={()=>duplicateLabel(label)} className="lc-dupe-btn" title="Duplicate">⧉</button>
+                      <button onClick={()=>removeLabel(label.id)} className="lc-remove-btn" title="Remove">✕</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="lc-divider">
+              <input type="text" value={refId} onChange={e=>setRefId(e.target.value)} placeholder="Reference ID (required)" className="lc-contact-input"/>
+              <input type="text" value={contactName} onChange={e=>setContactName(e.target.value)} placeholder="Contact Name" className="lc-contact-input"/>
+              <input type="email" value={contactEmail} onChange={e=>setContactEmail(e.target.value)} placeholder="Contact Email" className="lc-contact-input"/>
+              <button disabled={savedLabels.length===0||!refId||isSubmitting} onClick={submitOrder} className="lc-btn lc-submit">{isSubmitting?'Submitting...':'Submit Order'}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('label-creator-app')).render(<App/>);
+</script>
+
+</body>
+</html>

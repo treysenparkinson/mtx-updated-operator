@@ -80,7 +80,7 @@ export default async (req: Request, context: Context) => {
     }));
 
     // Send to Zapier webhook
-    const webhookUrl = Netlify.env.get("ZAPIER_WEBHOOK_URL") || "https://hooks.zapier.com/hooks/catch/24455310/uqnwsha/";
+    const webhookUrl = Netlify.env.get("ZAPIER_WEBHOOK_URL") || "https://hooks.zapier.com/hooks/catch/24455310/uqnnrvn/";
     
     const webhookPayload = {
       refId,

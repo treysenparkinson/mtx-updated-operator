@@ -191,7 +191,7 @@ const getDefaultPositions=(size)=>{
   };
 };
 
-const LabelPreview=({label,scale=1,positions,onDrag,draggingId,setDraggingId})=>{
+const LabelPreview=({label,scale=1,positions,onDrag,draggingId,setDraggingId,alignmentGuides,setAlignmentGuides})=>{
   const size=label.size||SIZES[2],color=label.color||COLORS[0],corners=label.corners||'squared',notch=label.notch||'none',font=label.font||FONTS[0];
   const w=size.width*scale,h=size.height*scale,cutoutR=(size.id==='22mm'?24:36)*scale,cutoutY=h*0.68,notchSize=10*scale,borderR=corners==='rounded'?8*scale:0;
   const maskId=`mask-${label.id||'preview'}-${Math.random().toString(36).substr(2,9)}`;
@@ -214,12 +214,42 @@ const LabelPreview=({label,scale=1,positions,onDrag,draggingId,setDraggingId})=>
     const handleMouseMove=(e2)=>{
       let x=(e2.clientX-rect.left)/scale;
       let y=(e2.clientY-rect.top)/scale;
-      if(Math.abs(x-centerX)<snapThreshold)x=centerX;
-      if(Math.abs(y-centerY)<snapThreshold)y=centerY;
+      let guides={horizontal:null,vertical:null};
+      
+      // Snap to center lines
+      if(Math.abs(x-centerX)<snapThreshold){x=centerX;guides.vertical=centerX;}
+      if(Math.abs(y-centerY)<snapThreshold){y=centerY;guides.horizontal=centerY;}
+      
+      // Snap to other text elements
+      const otherVars=['var1','var2','var3','var4','var5','var6'].filter(v=>v!==varId);
+      const activeVars=otherVars.filter(v=>{
+        if(v==='var2'&&!showLine2)return false;
+        if(v==='var3'&&!showLine3)return false;
+        return label[v];
+      });
+      
+      for(const v of activeVars){
+        const otherPos=positions[v];
+        if(otherPos){
+          // Horizontal alignment (same Y)
+          if(Math.abs(y-otherPos.y)<snapThreshold){
+            y=otherPos.y;
+            guides.horizontal=otherPos.y;
+          }
+          // Vertical alignment (same X)
+          if(Math.abs(x-otherPos.x)<snapThreshold){
+            x=otherPos.x;
+            guides.vertical=otherPos.x;
+          }
+        }
+      }
+      
+      if(setAlignmentGuides)setAlignmentGuides(guides);
       onDrag(varId,{x:Math.max(10,Math.min(size.width-10,x)),y:Math.max(10,Math.min(size.height-10,y))});
     };
     const handleMouseUp=()=>{
       setDraggingId(null);
+      if(setAlignmentGuides)setAlignmentGuides({horizontal:null,vertical:null});
       document.removeEventListener('mousemove',handleMouseMove);
       document.removeEventListener('mouseup',handleMouseUp);
     };
@@ -305,6 +335,8 @@ const LabelPreview=({label,scale=1,positions,onDrag,draggingId,setDraggingId})=>
       })()}
       {showCenterLines&&<line x1={w/2} y1={0} x2={w/2} y2={h} stroke="rgba(59,130,246,0.5)" strokeWidth={1} strokeDasharray="4,4"/>}
       {showCenterLines&&<line x1={0} y1={h/2} x2={w} y2={h/2} stroke="rgba(59,130,246,0.5)" strokeWidth={1} strokeDasharray="4,4"/>}
+      {alignmentGuides?.vertical!==null&&alignmentGuides.vertical!==centerX&&<line x1={alignmentGuides.vertical*scale} y1={0} x2={alignmentGuides.vertical*scale} y2={h} stroke="rgba(34,197,94,0.8)" strokeWidth={2}/>}
+      {alignmentGuides?.horizontal!==null&&alignmentGuides.horizontal!==centerY&&<line x1={0} y1={alignmentGuides.horizontal*scale} x2={w} y2={alignmentGuides.horizontal*scale} stroke="rgba(34,197,94,0.8)" strokeWidth={2}/>}
       {label.var1&&<text x={positions.var1.x*scale} y={positions.var1.y*scale} textAnchor="middle" fill={color.text} fontSize={(label.var1Size||18)*scale*0.7} fontFamily={fontFamily} className={`lc-draggable ${draggingId==='var1'?'dragging':''}`} onMouseDown={e=>handleMouseDown(e,'var1')} style={{cursor:'move'}}>{label.var1}</text>}
       {label.var2&&showLine2&&<text x={positions.var2.x*scale} y={positions.var2.y*scale} textAnchor="middle" fill={color.text} fontSize={(label.var2Size||18)*scale*0.7} fontFamily={fontFamily} className={`lc-draggable ${draggingId==='var2'?'dragging':''}`} onMouseDown={e=>handleMouseDown(e,'var2')} style={{cursor:'move'}}>{label.var2}</text>}
       {label.var3&&showLine3&&<text x={positions.var3.x*scale} y={positions.var3.y*scale} textAnchor="middle" fill={color.text} fontSize={(label.var3Size||18)*scale*0.7} fontFamily={fontFamily} className={`lc-draggable ${draggingId==='var3'?'dragging':''}`} onMouseDown={e=>handleMouseDown(e,'var3')} style={{cursor:'move'}}>{label.var3}</text>}
@@ -372,6 +404,7 @@ const App=()=>{
   const[draggingId,setDraggingId]=React.useState(null);
   const[showSuccessPopup,setShowSuccessPopup]=React.useState(false);
   const[notes,setNotes]=React.useState('');
+  const[alignmentGuides,setAlignmentGuides]=React.useState({horizontal:null,vertical:null});
 
   React.useEffect(()=>{setPositions(getDefaultPositions(size));},[size]);
 
@@ -534,7 +567,7 @@ const App=()=>{
           <div className="lc-preview-container">
             <div className="lc-preview-label">{size.name} • {size.dimensions} — Drag text to reposition</div>
             <div className={`lc-preview-area ${celebrating?'lc-preview-celebrating':''}`}>
-              <LabelPreview label={currentLabel} scale={previewScale} positions={positions} onDrag={handleDrag} draggingId={draggingId} setDraggingId={setDraggingId}/>
+              <LabelPreview label={currentLabel} scale={previewScale} positions={positions} onDrag={handleDrag} draggingId={draggingId} setDraggingId={setDraggingId} alignmentGuides={alignmentGuides} setAlignmentGuides={setAlignmentGuides}/>
             </div>
             <button className="lc-reset-btn" onClick={resetPositions}>Reset text positions</button>
             <div className="lc-btn-row" style={{width:'100%',justifyContent:'center'}}>

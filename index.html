@@ -14,7 +14,7 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
 #label-creator-app{font-family:'Montserrat',system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);padding:1rem}
-.lc-container{display:grid;grid-template-columns:320px 1fr 340px;gap:1rem;max-width:1600px;margin:0 auto}
+.lc-container{display:grid;grid-template-columns:380px 1fr 340px;gap:1rem;max-width:1600px;margin:0 auto}
 .lc-left{display:flex;flex-direction:column;gap:1rem}
 .lc-center{display:flex;flex-direction:column;gap:1rem}
 .lc-right{display:flex;flex-direction:column;gap:1rem}
@@ -72,7 +72,9 @@
 .lc-divider{border-top:1px solid #e2e8f0;margin:0.75rem 0;padding-top:0.75rem}
 .lc-contact-input{width:100%;padding:0.5rem 0.625rem;border:1px solid #e2e8f0;border-radius:6px;font-size:0.8rem;margin-bottom:0.5rem;box-sizing:border-box;font-family:'Montserrat',sans-serif}
 .lc-contact-input:focus{outline:none;border-color:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,0.1)}
-.lc-submit{width:100%;padding:0.75rem}
+.lc-submit{width:100%;padding:0.75rem;background:#2563eb}
+.lc-submit:hover{background:#1d4ed8}
+.lc-btn-add{padding:0.75rem 1.5rem;font-size:1rem}
 .lc-text-label{font-size:0.7rem;color:#64748b;width:45px;flex-shrink:0;white-space:nowrap}
 .lc-draggable{cursor:move;user-select:none}
 .lc-draggable:hover{filter:brightness(1.1)}
@@ -480,7 +482,7 @@ const App=()=>{
             <button className="lc-reset-btn" onClick={resetPositions}>Reset text positions</button>
             <div className="lc-btn-row" style={{width:'100%',justifyContent:'center'}}>
               <input type="number" min="1" value={quantity} onChange={e=>setQuantity(Math.max(1,parseInt(e.target.value)||1))} className="lc-qty"/>
-              <button onClick={addLabel} className="lc-btn">Add to List</button>
+              <button onClick={addLabel} className="lc-btn lc-btn-add">Add to List</button>
             </div>
           </div>
         </div>

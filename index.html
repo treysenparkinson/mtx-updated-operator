@@ -371,6 +371,7 @@ const App=()=>{
   const[positions,setPositions]=React.useState(getDefaultPositions(SIZES[2]));
   const[draggingId,setDraggingId]=React.useState(null);
   const[showSuccessPopup,setShowSuccessPopup]=React.useState(false);
+  const[notes,setNotes]=React.useState('');
 
   React.useEffect(()=>{setPositions(getDefaultPositions(size));},[size]);
 
@@ -402,6 +403,7 @@ const App=()=>{
           refId,
           contactName,
           contactEmail,
+          notes,
           labels:savedLabels
         })
       });
@@ -428,6 +430,7 @@ const App=()=>{
     setRefId('');
     setContactName('');
     setContactEmail('');
+    setNotes('');
     setVar1('START');
     setVar2('');
     setVar3('');
@@ -568,6 +571,8 @@ const App=()=>{
               <input type="text" value={contactName} onChange={e=>setContactName(e.target.value)} placeholder="Contact Name" className="lc-contact-input"/>
               <input type="email" value={contactEmail} onChange={e=>setContactEmail(e.target.value)} placeholder="Contact Email" className="lc-contact-input"/>
               <button disabled={savedLabels.length===0||!refId||isSubmitting} onClick={submitOrder} className="lc-btn lc-submit">{isSubmitting?'Submitting...':'Submit Order'}</button>
+              <div className="lc-section-title" style={{marginTop:'0.75rem'}}>Notes:</div>
+              <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Any additional notes or special requests..." className="lc-contact-input" style={{minHeight:'80px',resize:'vertical'}}/>
             </div>
           </div>
         </div>

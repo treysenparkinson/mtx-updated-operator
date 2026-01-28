@@ -14,7 +14,7 @@ export default async (req: Request, context: Context) => {
 
   try {
     const data = await req.json();
-    const { refId, contactName, contactEmail, labels } = data;
+    const { refId, contactName, contactEmail, notes, labels } = data;
 
     if (!refId || !labels || labels.length === 0) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
@@ -145,6 +145,7 @@ export default async (req: Request, context: Context) => {
       refId,
       contactName: contactName || "",
       contactEmail: contactEmail || "",
+      notes: notes || "",
       timestamp,
       formattedDate,
       totalLabels,

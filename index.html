@@ -14,8 +14,6 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
 #label-creator-app{font-family:'Montserrat',system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);padding:1rem}
-.lc-header{background:#fff;padding:0.6rem 1.5rem;border-radius:12px;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,0.1);text-align:center}
-.lc-header h1{margin:0;font-size:1.5rem;color:#1e293b;font-weight:700}
 .lc-container{display:grid;grid-template-columns:320px 1fr 340px;gap:1rem;max-width:1600px;margin:0 auto}
 .lc-left{display:flex;flex-direction:column;gap:1rem}
 .lc-center{display:flex;flex-direction:column;gap:1rem}
@@ -432,7 +430,6 @@ const App=()=>{
   return(
     <>
       {showToast&&<div className="lc-success-toast">{toastMessage}</div>}
-      <div className="lc-header"><h1>Operator Label Creator</h1></div>
       <div className="lc-container">
         <div className="lc-left">
           <div className="lc-card">

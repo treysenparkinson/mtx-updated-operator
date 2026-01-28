@@ -45,7 +45,7 @@ export default async (req: Request, context: Context) => {
     excelData.push([`Reference ID: ${refId}`]);
     
     // Row 2: Headers
-    const headers = ["Size", "Color", "VAR1", "VAR2", "VAR3", "VAR4", "VAR5", "VAR6", "VAR1 Size", "VAR2 Size", "VAR3 Size", "VAR4 Size", "VAR5 Size", "VAR6 Size"];
+    const headers = ["Size", "Color", "VAR1", "VAR2", "VAR3", "VAR4", "VAR5", "VAR6", "VAR1 Size", "VAR2 Size", "VAR3 Size", "VAR4 Size", "VAR5 Size", "VAR6 Size", "Font"];
     excelData.push(headers);
     
     let totalLabels = 0;
@@ -64,7 +64,8 @@ export default async (req: Request, context: Context) => {
         label.var3 ? (label.var3Size || 18) : "",
         label.var4 ? (label.var4Size || 10) : "",
         label.var5 ? (label.var5Size || 10) : "",
-        label.var6 ? (label.var6Size || 10) : ""
+        label.var6 ? (label.var6Size || 10) : "",
+        label.font?.name || "Calibri (Default)"
       ];
       
       const qty = label.quantity || 1;
@@ -81,7 +82,7 @@ export default async (req: Request, context: Context) => {
     worksheet['!cols'] = [
       { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
       { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 10 },
-      { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }
+      { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 18 }
     ];
 
     const workbook = XLSX.utils.book_new();

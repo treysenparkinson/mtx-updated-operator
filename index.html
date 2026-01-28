@@ -475,7 +475,7 @@ const App=()=>{
   };
   
   const handleGoHome=()=>{
-    window.location.href='https://matrixpci.com';
+    window.top.location.href='https://www.matrixpci.com';
   };
   const removeLabel=(id)=>{setSavedLabels(savedLabels.filter(l=>l.id!==id));};
   const duplicateLabel=(label)=>{
@@ -505,7 +505,7 @@ const App=()=>{
         <div className="lc-mobile-popup-content">
           <div className="lc-mobile-popup-title">Desktop View Required</div>
           <div className="lc-mobile-popup-text">We apologize for the inconvenience. We are currently in development of making a mobile view. For now please enjoy creating using a desktop.</div>
-          <button onClick={()=>window.location.href='https://www.matrixpci.com'} className="lc-success-popup-btn secondary" style={{marginTop:'1.5rem'}}>Go Home</button>
+          <button onClick={()=>window.top.location.href='https://www.matrixpci.com'} className="lc-success-popup-btn secondary" style={{marginTop:'1.5rem'}}>Go Home</button>
         </div>
       </div>
       {showSuccessPopup&&(

@@ -105,7 +105,8 @@ export default async (req: Request, context: Context) => {
       Bucket: bucketName,
       Key: xlsxKey,
       Body: xlsxBuffer,
-      ContentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      ContentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      ACL: 'public-read'
     }));
     const xlsxUrl = `https://${bucketName}.s3.${Netlify.env.get("MY_AWS_REGION")}.amazonaws.com/${xlsxKey}`;
 
@@ -115,7 +116,8 @@ export default async (req: Request, context: Context) => {
       Bucket: bucketName,
       Key: pdfKey,
       Body: pdfBuffer,
-      ContentType: 'application/pdf'
+      ContentType: 'application/pdf',
+      ACL: 'public-read'
     }));
     const pdfUrl = `https://${bucketName}.s3.${Netlify.env.get("MY_AWS_REGION")}.amazonaws.com/${pdfKey}`;
 

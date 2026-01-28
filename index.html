@@ -21,6 +21,21 @@
 @media(max-width:900px){
   .lc-mobile-popup{display:flex}
 }
+.lc-success-popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;display:flex;justify-content:center;align-items:center;padding:1rem;box-sizing:border-box;animation:fadeIn 0.3s ease-out}
+.lc-success-popup-content{background:#fff;border-radius:16px;padding:2.5rem;max-width:450px;text-align:center;font-family:'Montserrat',sans-serif;animation:popInBounce 0.5s ease-out}
+.lc-success-icon{font-size:4rem;margin-bottom:1rem;animation:bounceIn 0.6s ease-out}
+.lc-success-popup-title{font-size:1.5rem;font-weight:700;color:#1e293b;margin-bottom:1rem}
+.lc-success-popup-text{font-size:1rem;color:#64748b;line-height:1.6;margin-bottom:1.5rem}
+.lc-success-popup-buttons{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+.lc-success-popup-btn{padding:0.75rem 1.5rem;border-radius:8px;font-weight:600;font-size:0.95rem;cursor:pointer;transition:all 0.2s;font-family:'Montserrat',sans-serif;border:none}
+.lc-success-popup-btn.primary{background:#16a34a;color:#fff}
+.lc-success-popup-btn.primary:hover{background:#15803d;transform:scale(1.02)}
+.lc-success-popup-btn.secondary{background:#e2e8f0;color:#334155}
+.lc-success-popup-btn.secondary:hover{background:#cbd5e1;transform:scale(1.02)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes popInBounce{0%{transform:scale(0.5);opacity:0}50%{transform:scale(1.05)}70%{transform:scale(0.98)}100%{transform:scale(1);opacity:1}}
+@keyframes bounceIn{0%{transform:scale(0)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes confetti{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(100px) rotate(720deg);opacity:0}}
 .lc-container{display:grid;grid-template-columns:380px 1fr 340px;gap:1rem;max-width:1600px;margin:0 auto}
 .lc-left{display:flex;flex-direction:column;gap:1rem}
 .lc-center{display:flex;flex-direction:column;gap:1rem}
@@ -355,6 +370,7 @@ const App=()=>{
   const[celebrating,setCelebrating]=React.useState(false);
   const[positions,setPositions]=React.useState(getDefaultPositions(SIZES[2]));
   const[draggingId,setDraggingId]=React.useState(null);
+  const[showSuccessPopup,setShowSuccessPopup]=React.useState(false);
 
   React.useEffect(()=>{setPositions(getDefaultPositions(size));},[size]);
 
@@ -391,13 +407,7 @@ const App=()=>{
       });
       const result=await response.json();
       if(result.success){
-        setToastMessage('✓ Order submitted successfully!');
-        setShowToast(true);
-        setSavedLabels([]);
-        setRefId('');
-        setContactName('');
-        setContactEmail('');
-        setTimeout(()=>setShowToast(false),3000);
+        setShowSuccessPopup(true);
       }else{
         setToastMessage('✗ Failed to submit order');
         setShowToast(true);
@@ -411,6 +421,25 @@ const App=()=>{
     }finally{
       setIsSubmitting(false);
     }
+  };
+  
+  const handleCreateMore=()=>{
+    setSavedLabels([]);
+    setRefId('');
+    setContactName('');
+    setContactEmail('');
+    setVar1('START');
+    setVar2('');
+    setVar3('');
+    setVar4('');
+    setVar5('');
+    setVar6('');
+    setQuantity(1);
+    setShowSuccessPopup(false);
+  };
+  
+  const handleGoHome=()=>{
+    window.location.href='https://matrixpci.com';
   };
   const removeLabel=(id)=>{setSavedLabels(savedLabels.filter(l=>l.id!==id));};
   const duplicateLabel=(label)=>{
@@ -442,6 +471,19 @@ const App=()=>{
           <div className="lc-mobile-popup-text">We apologize for the inconvenience. We are currently in development of making a mobile view. For now please enjoy creating using a desktop.</div>
         </div>
       </div>
+      {showSuccessPopup&&(
+        <div className="lc-success-popup">
+          <div className="lc-success-popup-content">
+            <div className="lc-success-icon">🎉</div>
+            <div className="lc-success-popup-title">Thank You!</div>
+            <div className="lc-success-popup-text">Thank you for using our creator. We will get back to you as soon as possible.</div>
+            <div className="lc-success-popup-buttons">
+              <button onClick={handleCreateMore} className="lc-success-popup-btn primary">Create More</button>
+              <button onClick={handleGoHome} className="lc-success-popup-btn secondary">Go Home</button>
+            </div>
+          </div>
+        </div>
+      )}
       {showToast&&<div className="lc-success-toast">{toastMessage}</div>}
       <div className="lc-container">
         <div className="lc-left">

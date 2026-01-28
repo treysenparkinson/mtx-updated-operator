@@ -1,7 +1,7 @@
 {
   "name": "mtx-updated-operator",
   "version": "1.0.0",
-  "description": "",
+  "description": "Matrix Systems Label Creator",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -20,6 +20,10 @@
   "homepage": "https://github.com/treysenparkinson/mtx-updated-operator#readme",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.975.0",
+    "pdfkit": "^0.15.0",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/pdfkit": "^0.13.4"
   }
 }

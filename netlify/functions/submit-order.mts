@@ -1,6 +1,7 @@
 import type { Context, Config } from "@netlify/functions";
 import * as XLSX from 'xlsx';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import PDFDocument from 'pdfkit';
 
 export default async (req: Request, context: Context) => {
   if (req.method === "OPTIONS") {
@@ -35,17 +36,16 @@ export default async (req: Request, context: Context) => {
       hour: "2-digit", minute: "2-digit"
     });
 
-    // Build Excel data - one row per quantity
+    // ============================================
+    // BUILD EXCEL FILE
+    // ============================================
     const excelData: any[][] = [];
     
     // Row 1: Reference ID
     excelData.push([`Reference ID: ${refId}`]);
     
-    // Row 2: Empty row
-    excelData.push([]);
-    
-    // Row 3: Headers
-    const headers = ["Size", "Color", "VAR1", "VAR2", "VAR3", "VAR4", "VAR5", "VAR6", "VAR1 Size", "VAR2 Size", "VAR3 Size", "VAR4 Size", "VAR5 Size", "VAR6 Size", "Font"];
+    // Row 2: Headers
+    const headers = ["Size", "Color", "VAR1", "VAR2", "VAR3", "VAR4", "VAR5", "VAR6", "VAR1 Size", "VAR2 Size", "VAR3 Size", "VAR4 Size", "VAR5 Size", "VAR6 Size"];
     excelData.push(headers);
     
     let totalLabels = 0;
@@ -64,8 +64,7 @@ export default async (req: Request, context: Context) => {
         label.var3 ? (label.var3Size || 18) : "",
         label.var4 ? (label.var4Size || 10) : "",
         label.var5 ? (label.var5Size || 10) : "",
-        label.var6 ? (label.var6Size || 10) : "",
-        label.font?.name || "Calibri (Default)"
+        label.var6 ? (label.var6Size || 10) : ""
       ];
       
       const qty = label.quantity || 1;
@@ -82,7 +81,7 @@ export default async (req: Request, context: Context) => {
     worksheet['!cols'] = [
       { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
       { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, { wch: 10 },
-      { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 18 }
+      { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }
     ];
 
     const workbook = XLSX.utils.book_new();
@@ -91,106 +90,15 @@ export default async (req: Request, context: Context) => {
     // Generate XLSX as buffer
     const xlsxBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 
-    // Generate PDF HTML
-    const generateLabelSVG = (label: any) => {
-      const size = label.size || { width: 160, height: 182, id: "30mm-standard", name: "30MM Standard" };
-      const color = label.color || { bg: "#16a34a", text: "#fff", id: "green-white" };
-      const corners = label.corners || "squared";
-      const font = label.font || { family: "Calibri, sans-serif" };
-      const positions = label.positions || {};
-      
-      const scale = 1.5;
-      const w = size.width * scale;
-      const h = size.height * scale;
-      const cutoutR = (size.id === "22mm" ? 24 : 36) * scale;
-      const cutoutY = h * 0.68;
-      const borderR = corners === "rounded" ? 8 * scale : 0;
-      const isWhiteBlack = color.id === "white-black";
-      
-      const showLine2 = size.id !== "30mm-short";
-      const showLine3 = size.id !== "22mm" && size.id !== "30mm-short";
+    // ============================================
+    // BUILD PDF FILE
+    // ============================================
+    const pdfBuffer = await generatePDF(refId, formattedDate, labels, totalLabels);
 
-      const defPos = {
-        var1: { x: size.width / 2, y: 20 },
-        var2: { x: size.width / 2, y: 38 },
-        var3: { x: size.width / 2, y: 54 },
-        var4: { x: size.width / 2, y: size.height * 0.68 - (size.id === "22mm" ? 24 : 36) - 16 },
-        var5: { x: size.width / 2 - (size.id === "22mm" ? 28 : 50), y: size.height * 0.68 - 28 },
-        var6: { x: size.width / 2 + (size.id === "22mm" ? 28 : 50), y: size.height * 0.68 - 28 }
-      };
-      const pos = { ...defPos, ...positions };
-
-      let textElements = "";
-      const escapeHtml = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-      
-      if (label.var1) textElements += `<text x="${pos.var1.x * scale}" y="${pos.var1.y * scale}" text-anchor="middle" fill="${color.text}" font-size="${(label.var1Size || 18) * scale * 0.7}" font-family="${font.family || 'Calibri, sans-serif'}">${escapeHtml(label.var1)}</text>`;
-      if (label.var2 && showLine2) textElements += `<text x="${pos.var2.x * scale}" y="${pos.var2.y * scale}" text-anchor="middle" fill="${color.text}" font-size="${(label.var2Size || 18) * scale * 0.7}" font-family="${font.family || 'Calibri, sans-serif'}">${escapeHtml(label.var2)}</text>`;
-      if (label.var3 && showLine3) textElements += `<text x="${pos.var3.x * scale}" y="${pos.var3.y * scale}" text-anchor="middle" fill="${color.text}" font-size="${(label.var3Size || 18) * scale * 0.7}" font-family="${font.family || 'Calibri, sans-serif'}">${escapeHtml(label.var3)}</text>`;
-      if (label.var4) textElements += `<text x="${pos.var4.x * scale}" y="${pos.var4.y * scale}" text-anchor="middle" fill="${color.text}" font-size="${(label.var4Size || 10) * scale * 0.7}" font-family="${font.family || 'Calibri, sans-serif'}">${escapeHtml(label.var4)}</text>`;
-      if (label.var5) textElements += `<text x="${pos.var5.x * scale}" y="${pos.var5.y * scale}" text-anchor="end" fill="${color.text}" font-size="${(label.var5Size || 10) * scale * 0.7}" font-family="${font.family || 'Calibri, sans-serif'}">${escapeHtml(label.var5)}</text>`;
-      if (label.var6) textElements += `<text x="${pos.var6.x * scale}" y="${pos.var6.y * scale}" text-anchor="start" fill="${color.text}" font-size="${(label.var6Size || 10) * scale * 0.7}" font-family="${font.family || 'Calibri, sans-serif'}">${escapeHtml(label.var6)}</text>`;
-
-      const borderStroke = isWhiteBlack ? `stroke="#000" stroke-width="2"` : "";
-      const circleStroke = isWhiteBlack ? `stroke="#000" stroke-width="2"` : `stroke="${color.bg}" stroke-width="4"`;
-      
-      return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
-        <rect width="${w}" height="${h}" fill="${color.bg}" rx="${borderR}" ${borderStroke}/>
-        <circle cx="${w/2}" cy="${cutoutY}" r="${cutoutR}" fill="#ffffff" ${circleStroke}/>
-        ${textElements}
-      </svg>`;
-    };
-
-    const labelCards = labels.map((label: any) => `
-      <div style="display: flex; align-items: center; padding: 20px; border-bottom: 1px solid #e2e8f0; gap: 20px;">
-        <div style="flex-shrink: 0;">
-          ${generateLabelSVG(label)}
-        </div>
-        <div style="flex: 1;">
-          <div style="font-size: 18px; font-weight: 600; color: #1e293b;">${label.size?.name || "30MM Standard"}</div>
-          <div style="font-size: 14px; color: #64748b;">${label.size?.dimensions || '2" × 2.27"'}</div>
-          <div style="font-size: 14px; color: #64748b; margin-top: 4px;">Color: ${label.color?.name || "Green/White"}</div>
-          <div style="font-size: 14px; color: #64748b;">Font: ${label.font?.name || "Calibri (Default)"}</div>
-          <div style="font-size: 14px; color: #64748b;">Corners: ${label.corners || "squared"}</div>
-          <div style="font-size: 14px; color: #64748b;">Notch: ${label.notch || "none"}</div>
-        </div>
-        <div style="font-size: 24px; font-weight: 700; color: #1e293b;">×${label.quantity || 1}</div>
-      </div>
-    `).join("");
-
-    const pdfHtml = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-body { font-family: Arial, sans-serif; margin: 0; padding: 40px; background: #fff; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 2px solid #1e293b; }
-.ref-id { font-size: 14px; font-weight: 600; color: #1e293b; }
-.date { font-size: 14px; color: #64748b; }
-.title { font-size: 28px; font-weight: 700; color: #1e293b; margin-bottom: 10px; }
-.contact { font-size: 14px; color: #64748b; margin-bottom: 20px; }
-.labels-container { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
-.summary { margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 8px; }
-.summary-text { font-size: 14px; color: #64748b; }
-.summary-total { font-size: 18px; font-weight: 600; color: #1e293b; }
-</style>
-</head>
-<body>
-<div class="header">
-<div class="ref-id">Reference ID: ${refId}</div>
-<div class="date">${formattedDate}</div>
-</div>
-<div class="title">Saved Labels Summary</div>
-<div class="contact">Contact: ${contactName || "N/A"} | Email: ${contactEmail || "N/A"}</div>
-<div class="labels-container">
-${labelCards}
-</div>
-<div class="summary">
-<span class="summary-text">Total Labels: </span>
-<span class="summary-total">${totalLabels}</span>
-</div>
-</body>
-</html>`;
-
+    // ============================================
+    // UPLOAD TO S3
+    // ============================================
+    
     // Upload XLSX to S3
     const xlsxKey = `labels/${refId}/labels-${refId}.xlsx`;
     await s3Client.send(new PutObjectCommand({
@@ -201,16 +109,19 @@ ${labelCards}
     }));
     const xlsxUrl = `https://${bucketName}.s3.${Netlify.env.get("MY_AWS_REGION")}.amazonaws.com/${xlsxKey}`;
 
-    // Upload HTML (for PDF conversion) to S3
-    const htmlKey = `labels/${refId}/labels-${refId}.html`;
+    // Upload PDF to S3
+    const pdfKey = `labels/${refId}/labels-${refId}.pdf`;
     await s3Client.send(new PutObjectCommand({
       Bucket: bucketName,
-      Key: htmlKey,
-      Body: pdfHtml,
-      ContentType: 'text/html'
+      Key: pdfKey,
+      Body: pdfBuffer,
+      ContentType: 'application/pdf'
     }));
-    const htmlUrl = `https://${bucketName}.s3.${Netlify.env.get("MY_AWS_REGION")}.amazonaws.com/${htmlKey}`;
+    const pdfUrl = `https://${bucketName}.s3.${Netlify.env.get("MY_AWS_REGION")}.amazonaws.com/${pdfKey}`;
 
+    // ============================================
+    // SEND TO ZAPIER WEBHOOK
+    // ============================================
     const labelSummaries = labels.map((label: any) => ({
       size: label.size?.name,
       dimensions: label.size?.dimensions,
@@ -227,7 +138,7 @@ ${labelCards}
       quantity: label.quantity
     }));
 
-    const webhookUrl = Netlify.env.get("ZAPIER_WEBHOOK_URL") || "https://hooks.zapier.com/hooks/catch/24455310/uqnnrvn/";
+    const webhookUrl = Netlify.env.get("ZAPIER_WEBHOOK_URL") || "";
     
     const webhookPayload = {
       refId,
@@ -239,7 +150,7 @@ ${labelCards}
       labelCount: labels.length,
       xlsxUrl,
       xlsxFileName: `labels-${refId}.xlsx`,
-      htmlUrl,
+      pdfUrl,
       pdfFileName: `labels-${refId}.pdf`,
       labels: labelSummaries
     };
@@ -258,7 +169,9 @@ ${labelCards}
       success: true, 
       message: "Order submitted successfully",
       refId,
-      totalLabels
+      totalLabels,
+      pdfUrl,
+      xlsxUrl
     }), {
       status: 200,
       headers: { "Content-Type": "application/json" }
@@ -269,6 +182,125 @@ ${labelCards}
     return new Response(JSON.stringify({ error: "Failed to process order" }), { status: 500 });
   }
 };
+
+// ============================================
+// PDF GENERATION FUNCTION
+// ============================================
+async function generatePDF(refId: string, formattedDate: string, labels: any[], totalLabels: number): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    
+    const doc = new PDFDocument({
+      size: 'LETTER',
+      margins: { top: 50, bottom: 50, left: 50, right: 50 }
+    });
+
+    doc.on('data', (chunk) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    const pageWidth = 612; // Letter width in points
+    const contentWidth = pageWidth - 100; // Minus margins
+    
+    // Header
+    doc.fontSize(12).font('Helvetica-Bold')
+       .text(`Reference ID: ${refId}`, 50, 50, { continued: false });
+    
+    doc.fontSize(10).font('Helvetica')
+       .text(formattedDate, 50, 50, { align: 'right' });
+
+    // Title
+    doc.moveDown(0.5);
+    doc.fontSize(24).font('Helvetica-Bold')
+       .text('Saved Labels Summary', 50, doc.y, { continued: false });
+    
+    // Page number placeholder (we'll handle multi-page later if needed)
+    doc.fontSize(10).font('Helvetica')
+       .text('Page 1 of 1', 50, 85, { align: 'right' });
+
+    // Divider line
+    doc.moveTo(50, 110).lineTo(pageWidth - 50, 110).stroke('#e2e8f0');
+
+    let yPosition = 130;
+    const labelHeight = 100;
+    const labelPreviewWidth = 70;
+    const labelPreviewHeight = 80;
+
+    labels.forEach((label, index) => {
+      // Check if we need a new page
+      if (yPosition + labelHeight > 720) {
+        doc.addPage();
+        yPosition = 50;
+      }
+
+      const size = label.size || { width: 160, height: 182, name: "30MM Standard", dimensions: '2" × 2.27"' };
+      const color = label.color || { bg: "#16a34a", text: "#fff", name: "Green/White" };
+      const corners = label.corners || "squared";
+
+      // Draw label preview
+      const previewX = 50;
+      const previewY = yPosition + 10;
+      
+      // Scale to fit preview area
+      const scaleX = labelPreviewWidth / size.width;
+      const scaleY = labelPreviewHeight / size.height;
+      const scale = Math.min(scaleX, scaleY);
+      const scaledWidth = size.width * scale;
+      const scaledHeight = size.height * scale;
+      
+      // Center the preview
+      const offsetX = previewX + (labelPreviewWidth - scaledWidth) / 2;
+      const offsetY = previewY + (labelPreviewHeight - scaledHeight) / 2;
+
+      // Draw label background
+      const borderRadius = corners === 'rounded' ? 5 : 0;
+      doc.roundedRect(offsetX, offsetY, scaledWidth, scaledHeight, borderRadius)
+         .fill(color.bg);
+
+      // Draw cutout circle
+      const cutoutR = (size.id === '22mm' ? 24 : 36) * scale;
+      const cutoutY = offsetY + scaledHeight * 0.68;
+      const cutoutX = offsetX + scaledWidth / 2;
+      doc.circle(cutoutX, cutoutY, cutoutR).fill('#ffffff');
+
+      // Draw text on label (VAR1 only for preview)
+      if (label.var1) {
+        const textColor = color.text || '#ffffff';
+        doc.fontSize(8 * scale).font('Helvetica-Bold').fillColor(textColor)
+           .text(label.var1, offsetX, offsetY + 8, { 
+             width: scaledWidth, 
+             align: 'center' 
+           });
+      }
+
+      // Reset fill color for rest of document
+      doc.fillColor('#000000');
+
+      // Label info (to the right of preview)
+      const infoX = 140;
+      
+      doc.fontSize(14).font('Helvetica-Bold')
+         .text(size.name, infoX, yPosition + 20);
+      
+      doc.fontSize(11).font('Helvetica').fillColor('#64748b')
+         .text(size.dimensions, infoX, yPosition + 40);
+
+      doc.fillColor('#000000');
+
+      // Quantity (far right)
+      doc.fontSize(16).font('Helvetica-Bold')
+         .text(`×${label.quantity || 1}`, pageWidth - 100, yPosition + 35, { align: 'right' });
+
+      // Divider line
+      yPosition += labelHeight;
+      doc.moveTo(50, yPosition).lineTo(pageWidth - 50, yPosition).stroke('#e2e8f0');
+      
+      yPosition += 10;
+    });
+
+    doc.end();
+  });
+}
 
 export const config: Config = {
   path: "/api/submit-order"

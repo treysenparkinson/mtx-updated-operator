@@ -376,7 +376,7 @@ const App=()=>{
   const[size,setSize]=React.useState(SIZES[2]);
   const[color,setColor]=React.useState(COLORS[0]);
   const[corners,setCorners]=React.useState('squared');
-  const[notch,setNotch]=React.useState('none');
+  const[notch,setNotch]=React.useState('top');
   const[font,setFont]=React.useState(FONTS[0]);
   const[var1,setVar1]=React.useState('START');
   const[var2,setVar2]=React.useState('');
@@ -384,12 +384,12 @@ const App=()=>{
   const[var4,setVar4]=React.useState('');
   const[var5,setVar5]=React.useState('');
   const[var6,setVar6]=React.useState('');
-  const[var1Size,setVar1Size]=React.useState(18);
-  const[var2Size,setVar2Size]=React.useState(18);
-  const[var3Size,setVar3Size]=React.useState(18);
-  const[var4Size,setVar4Size]=React.useState(10);
-  const[var5Size,setVar5Size]=React.useState(10);
-  const[var6Size,setVar6Size]=React.useState(10);
+  const[var1Size,setVar1Size]=React.useState(20);
+  const[var2Size,setVar2Size]=React.useState(20);
+  const[var3Size,setVar3Size]=React.useState(20);
+  const[var4Size,setVar4Size]=React.useState(16);
+  const[var5Size,setVar5Size]=React.useState(16);
+  const[var6Size,setVar6Size]=React.useState(16);
   const[quantity,setQuantity]=React.useState(1);
   const[savedLabels,setSavedLabels]=React.useState([]);
   const[refId,setRefId]=React.useState('');
@@ -604,7 +604,7 @@ const App=()=>{
               <input type="text" value={refId} onChange={e=>setRefId(e.target.value)} placeholder="Reference ID (required)" className="lc-contact-input"/>
               <input type="text" value={contactName} onChange={e=>setContactName(e.target.value)} placeholder="Contact Name" className="lc-contact-input"/>
               <input type="email" value={contactEmail} onChange={e=>setContactEmail(e.target.value)} placeholder="Contact Email" className="lc-contact-input"/>
-              <button disabled={savedLabels.length===0||!refId||isSubmitting} onClick={submitOrder} className="lc-btn lc-submit">{isSubmitting?'Submitting...':'Submit Order'}</button>
+              <button disabled={savedLabels.length===0||!refId||isSubmitting} onClick={submitOrder} className="lc-btn lc-submit">{isSubmitting?'Submitting...':'Submit for Quote'}</button>
               <div className="lc-section-title" style={{marginTop:'0.75rem'}}>Notes:</div>
               <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Any additional notes or special requests..." className="lc-contact-input" style={{minHeight:'80px',resize:'vertical'}}/>
             </div>

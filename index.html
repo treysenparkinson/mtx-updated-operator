@@ -44,7 +44,9 @@
 .lc-label{font-size:0.7rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;font-weight:600}
 .lc-preview-container{background:#fff;border-radius:12px;padding:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,0.1);display:flex;flex-direction:column;align-items:center;flex:1;overflow:hidden}
 .lc-preview-area{background:#f8fafc;border-radius:12px;padding:2rem;display:flex;justify-content:center;align-items:center;flex:1;min-height:500px;position:relative;cursor:crosshair;box-sizing:border-box}
-.lc-preview-label{font-size:0.75rem;color:#64748b;margin-bottom:0.75rem;text-align:center}
+.lc-preview-label{font-size:0.85rem;color:#64748b;margin-bottom:0.5rem;text-align:center}
+.lc-drag-hint-pill{display:inline-flex;align-items:center;gap:0.5rem;background:#e0e7ff;color:#3730a3;padding:0.5rem 1rem;border-radius:9999px;font-size:0.85rem;font-weight:500;margin-bottom:0.75rem}
+.lc-drag-hint-pill svg{width:18px;height:18px}
 .lc-btn{background:#16a34a;color:#fff;border:none;padding:0.5rem 1rem;border-radius:8px;font-weight:600;cursor:pointer;transition:background 0.2s;font-family:'Montserrat',sans-serif;font-size:0.875rem}
 .lc-btn:hover{background:#15803d}
 .lc-btn:disabled{background:#cbd5e1;cursor:not-allowed}
@@ -565,7 +567,11 @@ const App=()=>{
         </div>
         <div className="lc-center">
           <div className="lc-preview-container">
-            <div className="lc-preview-label">{size.name} • {size.dimensions} — Drag text to reposition</div>
+            <div className="lc-preview-label">{size.name} • {size.dimensions}</div>
+            <div className="lc-drag-hint-pill">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9l-3 3 3 3"/><path d="M9 5l3-3 3 3"/><path d="M15 19l-3 3-3-3"/><path d="M19 9l3 3-3 3"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+              Drag text to reposition
+            </div>
             <div className={`lc-preview-area ${celebrating?'lc-preview-celebrating':''}`}>
               <LabelPreview label={currentLabel} scale={previewScale} positions={positions} onDrag={handleDrag} draggingId={draggingId} setDraggingId={setDraggingId} alignmentGuides={alignmentGuides} setAlignmentGuides={setAlignmentGuides}/>
             </div>
